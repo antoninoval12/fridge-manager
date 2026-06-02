@@ -1,12 +1,12 @@
 # Fridge Manager
 
-Sistema informativo per la gestione intelligente degli alimenti del frigo e non solo.  
-Progetto per l'esame di **Basi di Dati**.
+Sistema informatico per la gestione intelligente degli alimenti domestici.
+Progetto per l'esame di **Basi di Dati** **AUTORE:** Antonino Valese.
 
-## Stack tecnologico
+Stack tecnologico:
 
 - **Backend:** Django (Python)
-- **Database:** SQLite possibilità di poi passarlo a MySQL in fase di produzione non di implementazione
+- **Database:** MySQL
 - **Frontend:** template Django + Bootstrap 5
 - JavaScript ridotto al minimo (solo il bundle di Bootstrap per navbar e conferme)
 
@@ -24,9 +24,9 @@ Progetto per l'esame di **Basi di Dati**.
 
 ## Requisiti
 
-- Python 3.12 (consigliato per non avere problemi nella parte di admin)
-- pip
-- venv
+- Python 3.12 (consigliato)
+- MySQLlite 
+- pip e venv
 
 ---
 
@@ -43,24 +43,18 @@ cd fridge-manager
 
 ```bash
 python -m venv venv
-```
-
-Windows:
-
-```bash
-venv\Scripts\activate
-```
-
-Linux/macOS:
-
-```bash
-source venv/bin/activate
+source venv/bin/activate        # su Windows: venv\Scripts\activate
 ```
 
 ### 3. Installare le dipendenze
 
 ```bash
 pip install -r requirements.txt
+```
+
+> Nota: `mysqlclient` richiede i header di sviluppo di MySQL.
+> Su Debian/Ubuntu: `sudo apt install default-libmysqlclient-dev build-essential pkg-config`.
+
 ```
 
 ### 4. Applicare le migrazioni
@@ -72,54 +66,42 @@ python manage.py migrate
 
 ### 5. Caricare i dati di esempio
 
-Sono disponibili due modalità.
+Sono disponibili due modalita'.
 
-#### Opzione 1 - Fixture JSON (consigliata)
-
-Carica direttamente un dataset già pronto:
-
-
-```bash
-python manage.py loaddata dati_esempio2.json
-```
-
-Questa modalità importa i dati esattamente come sono stati salvati nella fixture (utenti, frigoriferi, prodotti, categorie, ricette e notifiche).
-
----
-
-#### Opzione 2 - Popolamento automatico
+**Opzione consigliata** — comando completo (crea catalogo, utenti, frigoriferi
+condivisi, elementi con scadenze realistiche):
 
 ```bash
 python manage.py popola_db
-python manage.py controlla_scadenze
+python manage.py controlla_scadenze   # genera le notifiche di scadenza
 ```
 
-Questa modalità genera automaticamente dati di esempio tramite il comando personalizzato del progetto.
+**Opzione alternativa** — caricare la fixture completa (utenti, frigoriferi,
+prodotti, ricette, elementi con scadenze e notifiche) gia' pronta:
 
-Vengono creati:
+```bash
+python manage.py migrate          # crea le tabelle, se non l'hai gia' fatto
+python manage.py loaddata dati_esempio2.json
+```
 
-- utenti demo
-- frigoriferi
-- categorie
-- prodotti
-- ricette
-- notifiche di scadenza
+La fixture contiene 132 record, inclusi gli utenti demo con password gia'
+cifrata (`Password123!`). Dopo l'import puoi accedere subito con mario / giulia /
+luca / admin. Nota: le date di scadenza sono relative al giorno in cui la
+fixture e' stata generata; se vuoi rigenerarle aggiornate a oggi usa invece
+`python manage.py popola_db --reset`, che ricalcola tutto dinamicamente.
 
-È utile quando si vuole rigenerare rapidamente un database di test senza utilizzare una fixture salvata.
+Utenti di esempio creati da `popola_db` (password: `Password123!`):
 
----
+| Username | Ruolo                                         |
+|----------|-----------------------------------------------|
+| admin    | superuser (accesso a /admin/)                 |
+| mario    | proprietario "Frigo di casa"                  |
+| giulia   | membro di casa + proprietaria "Frigo ufficio" |
+| luca     | proprietario "Casa al mare"                   |
 
-### Differenza tra le due modalità
-
-| Metodo | Caratteristiche |
-|----------|----------|
-| `loaddata dati_esempio2.json` | Importa una fixture alternativa con dati già pronti |
-| `popola_db` | Genera automaticamente nuovi dati di esempio |
-| `controlla_scadenze` | Calcola e crea le notifiche in base alle scadenze presenti |
-
-Se desideri avere sempre gli stessi dati per test e dimostrazioni, è consigliato usare **loaddata**.
-
-Se invece vuoi ricreare un database di prova da zero, è consigliato usare **popola_db**.
+Il comando popola circa 30 prodotti distribuiti in 3 frigoriferi, con scadenze
+realistiche (alcuni gia' scaduti, alcuni in scadenza, molti validi) e genera in
+automatico le notifiche. Per svuotare e ricaricare i dati: `python manage.py popola_db --reset`.
 
 ### 6. Avviare il server
 
@@ -127,33 +109,8 @@ Se invece vuoi ricreare un database di prova da zero, è consigliato usare **pop
 python manage.py runserver
 ```
 
-Applicazione:
-
-```text
-http://127.0.0.1:8000/
-```
-
-Pannello di amministrazione:
-
-```text
-http://127.0.0.1:8000/admin/
-```
-
----
-
-## Avvio rapido (primo avvio)
-
-Dopo aver clonato il progetto:
-
-```bash
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-python manage.py makemigrations
-python manage.py migrate
-python manage.py loaddata dati_esempio.json
-python manage.py runserver
-```
+Applicazione: http://127.0.0.1:8000/
+Pannello di amministrazione: http://127.0.0.1:8000/admin/
 
 ---
 
@@ -163,35 +120,22 @@ python manage.py runserver
 python manage.py test
 ```
 
----
-
-## Produrre il dump del database
-
-Dopo aver popolato il database:
-
-```bash
-python manage.py dumpdata --indent 2 > dump_completo.json
-```
-
----
-
 ## Note sulla sicurezza
 
 - Tutte le query passano dal Django ORM (query parametrizzate): nessuna concatenazione di SQL grezzo, a protezione dalle **SQL injection**.
 - Le password sono memorizzate solo come hash (PBKDF2) e sono soggette ai validatori di robustezza configurati in `settings.py`.
-- La vista di login applica un semplice **throttling**: dopo 5 tentativi falliti con lo stesso nome utente l'accesso viene bloccato temporaneamente (contromisura agli attacchi **brute-force** e a **dizionario**).
+- La vista di login applica un semplice **throttling**: dopo 5 tentativi falliti l'accesso viene bloccato temporaneamente (contromisura agli attacchi **brute-force** e a **dizionario**).
 - Protezione **CSRF** attiva su tutti i form ed escaping automatico nei template.
 
 ---
 
 ## Struttura del progetto
 
-```text
+```
 fridge-manager/
 ├── manage.py
 ├── requirements.txt
-├── dati_esempio2.json
-├── db.sqlite3
+├── dati_esempio.json
 ├── fridgemanager/          # configurazione del progetto
 │   ├── settings.py
 │   ├── urls.py
@@ -209,21 +153,3 @@ fridge-manager/
     │   └── controlla_scadenze.py
     └── templates/
 ```
-
----
-
-## Utenti demo
-
-Se caricata la fixture completa, sono disponibili utenti di esempio con password preconfigurate.
-
-Accesso amministratore:
-
-```text
-/admin/
-```
-
----
-
-## Autore
-Antonino Valese
-Progetto sviluppato per l'esame di **Basi di Dati**, realizzato con Django e SQLite per la gestione intelligente degli alimenti domestici.
